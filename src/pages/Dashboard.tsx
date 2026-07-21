@@ -918,10 +918,19 @@ export default function App() {
         ) : (
           /* --- KANBAN BOARD STAGE (HORIZONTAL SCROLL AREA) --- */
           <div className="flex-1 overflow-x-auto p-4 sm:p-6 flex items-start gap-4 sm:gap-5 select-none clean-dots" id="kanban-stage">
-            {displayedColumns.map((col) => {
+            {displayedColumns.map((col, colIdx) => {
               // Filter cards that belong to this column
-              const columnCards = displayedCards.filter((card) => card.columnId === col.id);
-              
+              let columnCards = displayedCards.filter((card) => card.columnId === col.id);
+
+              // Cartões "órfãos" (a coluna original foi excluída/não existe mais) caem na primeira
+              // coluna em vez de sumir da tela silenciosamente
+              if (colIdx === 0) {
+                const orphanCards = displayedCards.filter(
+                  (card) => !displayedColumns.some((c) => c.id === card.columnId)
+                );
+                columnCards = [...columnCards, ...orphanCards];
+              }
+
               return (
                 <KanbanColumn
                   key={col.id}

@@ -42,7 +42,7 @@ export interface Card {
   signature?: string; // Base64 signature image from the collaborator
   x?: number; // X position on Canva Flowchart mode
   y?: number; // Y position on Canva Flowchart mode
-  connectedTo?: string; // ID of the target card in flowchart
+  connectedTo?: string[]; // IDs of target cards in flowchart (supports branching to multiple next steps)
 }
 
 export interface Column {
