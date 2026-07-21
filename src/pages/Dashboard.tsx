@@ -616,45 +616,38 @@ export default function App() {
   // --- WORKSPACE STATS AND FILTERING ---
   const activeBoard = boards.find((b) => b.id === activeBoardId) || boards[0];
 
-  // Helper to filter cards based on board mode and active filters
   const getFilteredCards = () => {
     return cards.filter((card) => {
       // 1. Board Scope:
+      // Se não for o general, o cartão OBRIGATORIAMENTE tem que pertencer a esse board
+      if (activeBoard.id !== 'board-general' && card.boardId !== activeBoard.id) {
+        return false;
+      }
+
       // Se o board tiver empresas específicas vinculadas (mesmo sendo o general), filtre!
       const boardCompanies = activeBoard.companyNames || [];
       const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
       
-      // Se não for general OU se for general MAS tiver empresas específicas vinculadas
-      if (activeBoard.id !== 'board-general' || boardCompanies.length > 0) {
-        if (boardCompanies.length > 0) {
-          // O cartão deve pertencer a PELO MENOS UMA das empresas do Board
-          const matchesBoard = cardCompanies.some(c => boardCompanies.includes(c));
-          if (!matchesBoard) return false;
-        }
+      if (boardCompanies.length > 0) {
+        // O cartão deve pertencer a PELO MENOS UMA das empresas do Board
+        const matchesBoard = cardCompanies.some(c => boardCompanies.includes(c));
+        if (!matchesBoard) return false;
       }
 
-      // 2. Search Query filter
-      if (searchQuery.trim()) {
+      // 2. Text Search:
+      if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesTitle = card.title.toLowerCase().includes(query);
-        const matchesDesc = card.description.toLowerCase().includes(query);
-        const matchesComp = card.companyName.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDesc && !matchesComp) {
-          return false;
-        }
+        const matchesDesc = (card.description || '').toLowerCase().includes(query);
+        if (!matchesTitle && !matchesDesc) return false;
       }
 
-      // 3. Priority filter
-      if (priorityFilter !== 'all' && card.priority !== priorityFilter) {
-        return false;
-      }
+      // 3. Priority Filter:
+      if (priorityFilter !== 'all' && card.priority !== priorityFilter) return false;
 
-      // 4. Top Header Company filter (only active on general view)
-      if (activeBoard.id === 'board-general' && companyFilter !== 'all') {
-        const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
-        if (!cardCompanies.includes(companyFilter)) {
-          return false;
-        }
+      // 4. Company Select Filter (Dropdown do menu)
+      if (companyFilter !== 'all') {
+        if (!cardCompanies.includes(companyFilter)) return false;
       }
 
       return true;
@@ -673,9 +666,14 @@ export default function App() {
     .sort((a, b) => a.order - b.order);
 
   const totalCardsInView = cards.filter((c) => {
+    // Se for um board específico de um funcionário/projeto (não general), conta só os cards que pertencem fisicamente a este board
+    if (activeBoard.id !== 'board-general' && c.boardId !== activeBoard.id) {
+      return false;
+    }
+
     const boardCompanies = activeBoard.companyNames || [];
     
-    // Se for board-general E não tiver empresas específicas, exibe tudo
+    // Se for board-general E não tiver empresas específicas, exibe tudo do general e de outros
     if (activeBoard.id === 'board-general' && boardCompanies.length === 0) return true;
     
     const cardCompanies = c.companyNames || [c.companyName].filter(Boolean);
@@ -888,19 +886,17 @@ export default function App() {
               <option value="low">Prioridade: Baixa</option>
             </select>
 
-            {/* Company selection filter (Only visible on general board) */}
-            {activeBoardId === 'board-general' && (
-              <select
-                value={companyFilter}
-                onChange={(e) => setCompanyFilter(e.target.value)}
-                className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs outline-none text-slate-600 dark:text-slate-400 font-medium cursor-pointer"
-              >
-                <option value="all">Empresa: Todas</option>
-                {companies.filter(c => c.id !== 'all').map(c => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            )}
+            {/* Company selection filter (Available on all boards) */}
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs outline-none text-slate-600 dark:text-slate-400 font-medium cursor-pointer"
+            >
+              <option value="all">Empresa: Todas</option>
+              {companies.filter(c => c.id !== 'all').map(c => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
 
             {/* Quick reset button */}
             {(searchQuery || priorityFilter !== 'all' || companyFilter !== 'all') && (
