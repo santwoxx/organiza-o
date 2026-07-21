@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, Trash2, Calendar, ListTodo, Palette, Tag, Briefcase, Paperclip, Link2, FileText, Upload, Download, ExternalLink } from 'lucide-react';
+import { X, Plus, Trash2, Calendar, ListTodo, Palette, Tag, Briefcase, Paperclip, Link2, FileText, Upload, Download, ExternalLink, Share2 } from 'lucide-react';
 import { Card, Priority, Subtask, Attachment } from '../types';
 
 interface CardModalProps {
@@ -225,6 +225,13 @@ export default function CardModal({
     };
 
     onSave(savedCard);
+  };
+
+  const handleCopyLink = () => {
+    if (!card) return;
+    const url = `${window.location.origin}/demand/${card.id}`;
+    navigator.clipboard.writeText(url);
+    alert('Link público de compartilhamento copiado com sucesso! Envie para o colaborador.');
   };
 
   // Companies list without "Todas as Empresas"
@@ -675,15 +682,26 @@ export default function CardModal({
 
         {/* Footer Actions */}
         <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div>
+          <div className="flex gap-2">
             {card && (
-              <button
-                type="button"
-                onClick={() => onDelete(card.id)}
-                className="px-3.5 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Trash2 className="w-4 h-4" /> Excluir Cartão
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="px-3.5 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Copiar Link de Compartilhamento"
+                >
+                  <Share2 className="w-4 h-4" /> Compartilhar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(card.id)}
+                  className="px-3.5 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Excluir Cartão"
+                >
+                  <Trash2 className="w-4 h-4" /> Excluir
+                </button>
+              </>
             )}
           </div>
 
