@@ -43,6 +43,7 @@ import {
   getInitialColumns,
   getInitialCards
 } from '../initialData';
+import { toDateStr } from '../utils/recurring';
 
 // Sub-components
 import BoardSidebar from '../components/BoardSidebar';
@@ -430,7 +431,24 @@ export default function App() {
   const handleToggleCardComplete = (cardId: string) => {
     const card = cards.find(c => c.id === cardId);
     if (!card) return;
-    const updated = { ...card, completed: !card.completed };
+
+    let updated: Card;
+    if (card.isRecurring) {
+      // Demanda recorrente: marca/desmarca apenas o dia de hoje, não o cartão para sempre
+      const today = toDateStr();
+      const doneToday = card.lastCompletedDate === today;
+      const dates = card.completedDates || [];
+
+      if (doneToday) {
+        const { lastCompletedDate, ...rest } = card;
+        updated = { ...rest, completedDates: dates.filter(d => d !== today) };
+      } else {
+        updated = { ...card, lastCompletedDate: today, completedDates: [...dates, today] };
+      }
+    } else {
+      updated = { ...card, completed: !card.completed };
+    }
+
     setCards(cards.map((c) => (c.id === cardId ? updated : c)));
     persistCard(updated);
     logActivity('Marcou Conclusão', `Alterou o status de conclusão do cartão: ${card.title}`);
@@ -758,10 +776,10 @@ export default function App() {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         
         {/* Workspace Top Header Panel */}
-        <header className="px-4 sm:px-6 h-16 border-b border-slate-100 dark:border-slate-900 bg-white dark:bg-slate-950 flex items-center justify-between gap-3 shrink-0 print:hidden z-30">
-          
+        <header className="px-2.5 sm:px-6 h-16 border-b border-slate-100 dark:border-slate-900 bg-white dark:bg-slate-950 flex items-center justify-between gap-1.5 sm:gap-3 shrink-0 print:hidden z-30">
+
           {/* Active Board Identity */}
-          <div className="text-left flex items-center gap-2">
+          <div className="text-left flex items-center gap-1.5 sm:gap-2 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer shrink-0"
@@ -808,10 +826,10 @@ export default function App() {
           </div>
 
           {/* Controls: Notifications and Canva Themes */}
-          <div className="flex items-center justify-end gap-2.5 sm:gap-4 shrink-0">
-            
-            {/* Canva-style Workspace Canvas Palette Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-100 dark:border-slate-800" title="Cor do Canvas (Fundo)">
+          <div className="flex items-center justify-end gap-1.5 sm:gap-4 shrink-0">
+
+            {/* Canva-style Workspace Canvas Palette Selector (hidden on very small screens to save space) */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-100 dark:border-slate-800" title="Cor do Canvas (Fundo)">
               {[
                 { id: 'slate', color: 'bg-slate-300 dark:bg-slate-700' },
                 { id: 'sand', color: 'bg-[#f4f1ea] dark:bg-[#272522]' },
@@ -839,7 +857,7 @@ export default function App() {
         </header>
 
         {/* Search, Filters, and Actions Bar */}
-        <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-900 bg-slate-50/30 dark:bg-slate-950/10 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 print:hidden z-10">
+        <div className="px-3 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-900 bg-slate-50/30 dark:bg-slate-950/10 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 print:hidden z-10">
           
           {/* Search box */}
           <div className="relative w-full sm:w-64">

@@ -3,6 +3,7 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --breakpoint-xs: 26rem;
 }
 
 /* Custom background pattern for Clean Minimalism theme */

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, Clock, AlertTriangle, CheckSquare, Edit3, ArrowRight, CheckCircle2, Paperclip, Link2, FileText, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckSquare, Edit3, ArrowRight, CheckCircle2, Paperclip, Link2, FileText, ExternalLink, Repeat, Flame } from 'lucide-react';
 import { Card, Priority } from '../types';
+import { isDoneToday, getStreak } from '../utils/recurring';
 
 interface KanbanCardProps {
   card: Card;
@@ -47,15 +48,20 @@ export default function KanbanCard({
     }
   };
 
+  // Demandas recorrentes usam "feito hoje" em vez de "concluído para sempre"
+  const recurring = !!card.isRecurring;
+  const doneToday = recurring ? isDoneToday(card.lastCompletedDate) : card.completed;
+  const streak = recurring ? getStreak(card.completedDates) : 0;
+
   // Check if deadline is overdue
   const isOverdue = () => {
-    if (!card.dueDate || card.completed) return false;
+    if (!card.dueDate || doneToday) return false;
     return new Date(card.dueDate) < new Date();
   };
 
   // Check if deadline is close (less than 24 hours)
   const isDueSoon = () => {
-    if (!card.dueDate || card.completed || isOverdue()) return false;
+    if (!card.dueDate || doneToday || isOverdue()) return false;
     const diff = new Date(card.dueDate).getTime() - new Date().getTime();
     return diff > 0 && diff < 24 * 60 * 60 * 1000;
   };
@@ -95,24 +101,43 @@ export default function KanbanCard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       className={`group relative bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing p-4 select-none ${
-        card.completed ? 'opacity-70 border-dashed bg-slate-50/50 dark:bg-slate-950/10' : ''
+        doneToday ? 'opacity-70 border-dashed bg-slate-50/50 dark:bg-slate-950/10' : ''
       } ${card.customBg || ''} ${isDragging ? 'opacity-40 ring-2 ring-indigo-500 scale-95' : ''}`}
       id={`card-${card.id}`}
     >
-      
+
       {/* Top badges bar */}
       <div className="flex items-center justify-between gap-1.5 mb-2.5">
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${getCompanyColor(card.companyName)}`}>
-          {card.companyName}
-        </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 min-w-0">
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md truncate ${getCompanyColor(card.companyName)}`}>
+            {card.companyName}
+          </span>
+          {recurring && (
+            <span
+              className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400 shrink-0"
+              title={`Demanda recorrente (diária)${streak > 0 ? ` — ${streak} dia(s) em sequência` : ''}`}
+            >
+              <Repeat className="w-2.5 h-2.5" />
+              {streak > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Flame className="w-2.5 h-2.5" />{streak}
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
           {getPriorityBadge(card.priority)}
           <button
             onClick={() => onToggleComplete(card.id)}
             className={`p-1 rounded-md transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${
-              card.completed ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'
+              doneToday ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'
             }`}
-            title={card.completed ? 'Reabrir tarefa' : 'Marcar como concluída'}
+            title={
+              recurring
+                ? (doneToday ? 'Feito hoje — clique para desmarcar' : 'Marcar como feito hoje')
+                : (card.completed ? 'Reabrir tarefa' : 'Marcar como concluída')
+            }
           >
             <CheckCircle2 className="w-4 h-4" />
           </button>
@@ -122,7 +147,7 @@ export default function KanbanCard({
       {/* Card title & Description */}
       <div className="text-left space-y-1">
         <h4 className={`text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors ${
-          card.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''
+          doneToday ? 'line-through text-slate-400 dark:text-slate-500' : ''
         }`}>
           {card.title}
         </h4>
@@ -146,7 +171,7 @@ export default function KanbanCard({
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-300 ${
-                card.completed || subtasksPercentage === 100 ? 'bg-emerald-500' : 'bg-indigo-500'
+                doneToday || subtasksPercentage === 100 ? 'bg-emerald-500' : 'bg-indigo-500'
               }`}
               style={{ width: `${subtasksPercentage}%` }}
             />
@@ -219,7 +244,7 @@ export default function KanbanCard({
         <div>
           {card.dueDate ? (
             <div className={`flex items-center gap-1 text-[9px] font-bold ${
-              card.completed
+              doneToday
                 ? 'text-slate-400'
                 : isOverdue()
                 ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md animate-pulse'

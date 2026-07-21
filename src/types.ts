@@ -43,6 +43,9 @@ export interface Card {
   x?: number; // X position on Canva Flowchart mode
   y?: number; // Y position on Canva Flowchart mode
   connectedTo?: string[]; // IDs of target cards in flowchart (supports branching to multiple next steps)
+  isRecurring?: boolean; // Demanda diária: precisa ser refeita todos os dias
+  lastCompletedDate?: string; // YYYY-MM-DD da última vez marcada como feita (demandas recorrentes)
+  completedDates?: string[]; // Histórico de dias (YYYY-MM-DD) concluídos, usado para calcular a sequência
 }
 
 export interface Column {

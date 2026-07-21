@@ -183,22 +183,24 @@ export default function DemandShare() {
     );
   }
 
+  const priorityLabel = card.priority === 'high' ? 'Alta' : card.priority === 'medium' ? 'Média' : 'Baixa';
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans p-4 sm:p-8">
-      <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans p-3 sm:p-8">
+      <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+
         {/* Header */}
-        <div className="bg-indigo-600 px-6 py-8 text-white relative">
-          <div className="absolute top-4 right-4 bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
+        <div className="bg-indigo-600 px-4 sm:px-6 py-5 sm:py-8 text-white">
+          <span className="inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm max-w-full truncate">
             {card.companyName}
-          </div>
-          <h1 className="text-3xl font-bold mb-2">{card.title}</h1>
-          <div className="flex flex-wrap items-center gap-4 text-indigo-100 text-sm mt-4">
+          </span>
+          <h1 className="text-xl sm:text-3xl font-bold mt-3 mb-2 break-words">{card.title}</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-indigo-100 text-xs sm:text-sm mt-4">
             <span className="flex items-center gap-1 bg-indigo-700/50 px-3 py-1 rounded-full"><Clock className="w-4 h-4"/> {getPendingTime(card.createdAt)}</span>
             {card.dueDate && !card.completed && (
               <span className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold shadow-sm ${
-                timeRemaining.includes('Pendente desde') 
-                  ? 'bg-rose-500 text-white animate-pulse' 
+                timeRemaining.includes('Pendente desde')
+                  ? 'bg-rose-500 text-white animate-pulse'
                   : 'bg-emerald-500/90 text-white'
               }`}>
                 {timeRemaining}
@@ -209,12 +211,12 @@ export default function DemandShare() {
                 <CheckCircle className="w-4 h-4"/> Entregue no Prazo
               </span>
             )}
-            <span className="flex items-center gap-1"><Layers className="w-4 h-4"/> Prioridade {card.priority}</span>
+            <span className="flex items-center gap-1"><Layers className="w-4 h-4"/> Prioridade {priorityLabel}</span>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 sm:p-8 space-y-8">
+        <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
           <div>
             <h2 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Descrição</h2>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
@@ -252,17 +254,17 @@ export default function DemandShare() {
               <Paperclip className="w-4 h-4" /> Anexos e Entregáveis
             </h2>
             
-            <div className="flex gap-2 mb-4">
-              <input 
-                type="url" 
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <input
+                type="url"
                 placeholder="Cole um link do Google Drive, Dropbox, etc..."
                 value={newAttachment}
                 onChange={e => setNewAttachment(e.target.value)}
-                className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                className="flex-1 min-w-0 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
               />
-              <button 
+              <button
                 onClick={handleAddAttachment}
-                className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl hover:bg-indigo-100 transition-colors"
+                className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl hover:bg-indigo-100 transition-colors shrink-0"
               >
                 Anexar
               </button>
@@ -271,15 +273,15 @@ export default function DemandShare() {
             {card.attachments && card.attachments.length > 0 && (
               <div className="space-y-2">
                 {card.attachments.map(att => (
-                  <a 
-                    key={att.id} 
-                    href={att.url} 
-                    target="_blank" 
+                  <a
+                    key={att.id}
+                    href={att.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-300 transition-colors text-sm font-medium text-slate-700 dark:text-slate-300"
                   >
-                    <Paperclip className="w-4 h-4 text-slate-400" />
-                    <span className="flex-1 truncate">{att.url}</span>
+                    <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span className="flex-1 min-w-0 truncate">{att.url}</span>
                   </a>
                 ))}
               </div>
@@ -292,18 +294,18 @@ export default function DemandShare() {
               <MessageSquare className="w-4 h-4" /> Comentários
             </h2>
             
-            <div className="flex gap-2 mb-4">
-              <input 
-                type="text" 
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <input
+                type="text"
                 placeholder="Escreva um comentário ou feedback..."
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddComment()}
-                className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-800 dark:text-slate-200"
+                className="flex-1 min-w-0 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-800 dark:text-slate-200"
               />
-              <button 
+              <button
                 onClick={handleAddComment}
-                className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl hover:bg-indigo-100 transition-colors flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 cursor-pointer shrink-0"
               >
                 <Send className="w-4 h-4" /> Enviar
               </button>
@@ -313,7 +315,7 @@ export default function DemandShare() {
               <div className="space-y-3">
                 {card.comments.map(c => (
                   <div key={c.id} className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-0.5 mb-1">
                       <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{c.author}</span>
                       <span className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString()}</span>
                     </div>

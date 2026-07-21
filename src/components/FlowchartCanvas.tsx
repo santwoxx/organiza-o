@@ -8,9 +8,11 @@ import {
   Link2,
   ZoomIn,
   ZoomOut,
-  Maximize
+  Maximize,
+  Repeat
 } from 'lucide-react';
 import { Card, Column, Priority } from '../types';
+import { getStreak } from '../utils/recurring';
 
 interface FlowchartCanvasProps {
   cards: Card[];
@@ -554,6 +556,8 @@ export default function FlowchartCanvas({
             const isDragging = draggingCardId === card.id;
             const connections = getConnections(card);
             const availableTargets = cards.filter(c => c.id !== card.id && !connections.includes(c.id));
+            const recurring = !!card.isRecurring;
+            const streak = recurring ? getStreak(card.completedDates) : 0;
 
             // Priority styles
             const PRIORITY_MAP: Record<Priority, { label: string; bg: string; className: string }> = {
@@ -590,6 +594,15 @@ export default function FlowchartCanvas({
                     </span>
 
                     <div className="flex items-center gap-1 shrink-0">
+                      {recurring && (
+                        <span
+                          className="flex items-center gap-0.5 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400"
+                          title={`Demanda recorrente (diária)${streak > 0 ? ` — ${streak} dia(s) em sequência` : ''}`}
+                        >
+                          <Repeat className="w-2.5 h-2.5" />
+                          {streak > 0 && streak}
+                        </span>
+                      )}
                       {connections.length > 0 && (
                         <span className="flex items-center gap-0.5 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400" title={`${connections.length} conexão(ões)`}>
                           <Link2 className="w-2.5 h-2.5" /> {connections.length}

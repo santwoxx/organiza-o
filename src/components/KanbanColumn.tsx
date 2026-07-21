@@ -172,7 +172,7 @@ export default function KanbanColumn({
               
               {/* Move column arrows */}
               {onMoveColumn && (
-                <div className="flex items-center opacity-0 group-hover:opacity-100 hover:opacity-100 focus-within:opacity-100 transition-opacity mr-1 border border-slate-300/40 dark:border-slate-700 rounded-md overflow-hidden bg-white/40 dark:bg-black/10">
+                <div className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 md:hover:opacity-100 md:focus-within:opacity-100 transition-opacity mr-1 border border-slate-300/40 dark:border-slate-700 rounded-md overflow-hidden bg-white/40 dark:bg-black/10">
                   <button
                     onClick={() => onMoveColumn(column.id, 'left')}
                     className="p-0.5 hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 cursor-pointer"
@@ -191,7 +191,7 @@ export default function KanbanColumn({
               )}
 
               {/* Canva Sizing quick controls */}
-              <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 hover:opacity-100 transition-opacity mr-1 border border-slate-300/40 dark:border-slate-700 rounded-md overflow-hidden bg-white/40 dark:bg-black/10">
+              <div className="hidden md:flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 hover:opacity-100 transition-opacity mr-1 border border-slate-300/40 dark:border-slate-700 rounded-md overflow-hidden bg-white/40 dark:bg-black/10">
                 <button
                   onClick={handleDecreaseWidth}
                   disabled={(column.width || 280) <= 220}

@@ -59,7 +59,7 @@ export default function NotificationCenter({
           />
 
           <div
-            className="absolute right-0 mt-3 w-88 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-40 transition-all transform origin-top-right scale-100"
+            className="absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-88 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-40 transition-all transform origin-top-right scale-100"
             id="notifications-popover"
           >
             {/* Header */}

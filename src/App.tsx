@@ -5,6 +5,7 @@ import { auth } from './firebase';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import DemandShare from './pages/DemandShare';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -33,26 +34,28 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Protected Dashboard Route */}
-        <Route 
-          path="/" 
-          element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
-        />
-        
-        {/* Login Route */}
-        <Route 
-          path="/login" 
-          element={!user ? <Login /> : <Navigate to="/" replace />} 
-        />
-        
-        {/* Public Shared Demand Route */}
-        <Route 
-          path="/demand/:cardId" 
-          element={<DemandShare />} 
-        />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          {/* Protected Dashboard Route */}
+          <Route
+            path="/"
+            element={user ? <Dashboard /> : <Navigate to="/login" replace />}
+          />
+
+          {/* Login Route */}
+          <Route
+            path="/login"
+            element={!user ? <Login /> : <Navigate to="/" replace />}
+          />
+
+          {/* Public Shared Demand Route */}
+          <Route
+            path="/demand/:cardId"
+            element={<DemandShare />}
+          />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }
