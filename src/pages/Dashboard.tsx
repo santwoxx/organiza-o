@@ -619,12 +619,12 @@ export default function App() {
   const getFilteredCards = () => {
     return cards.filter((card) => {
       // 1. Board Scope:
-      // Se não for o general, o cartão OBRIGATORIAMENTE tem que pertencer a esse board
-      if (activeBoard.id !== 'board-general' && card.boardId !== activeBoard.id) {
+      // O cartão OBRIGATORIAMENTE tem que pertencer a este board (nunca aparece em outro quadro)
+      if (card.boardId !== activeBoard.id) {
         return false;
       }
 
-      // Se o board tiver empresas específicas vinculadas (mesmo sendo o general), filtre!
+      // Se o board tiver empresas específicas vinculadas, filtre também por empresa!
       const boardCompanies = activeBoard.companyNames || [];
       const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
       
@@ -666,24 +666,16 @@ export default function App() {
     .sort((a, b) => a.order - b.order);
 
   const totalCardsInView = cards.filter((c) => {
-    // Se for um board específico de um funcionário/projeto (não general), conta só os cards que pertencem fisicamente a este board
-    if (activeBoard.id !== 'board-general' && c.boardId !== activeBoard.id) {
+    // Conta apenas os cards que pertencem fisicamente a este board (nunca conta cards de outros quadros)
+    if (c.boardId !== activeBoard.id) {
       return false;
     }
 
     const boardCompanies = activeBoard.companyNames || [];
-    
-    // Se for board-general E não tiver empresas específicas, exibe tudo do general e de outros
-    if (activeBoard.id === 'board-general' && boardCompanies.length === 0) return true;
-    
+    if (boardCompanies.length === 0) return true;
+
     const cardCompanies = c.companyNames || [c.companyName].filter(Boolean);
-    
-    // Se o board tem empresas específicas, filtra
-    if (boardCompanies.length > 0) {
-      return cardCompanies.some(comp => boardCompanies.includes(comp));
-    }
-    
-    return true; // Fallback se não for general mas estiver sem empresas
+    return cardCompanies.some(comp => boardCompanies.includes(comp));
   });
   const doneCount = totalCardsInView.filter((c) => c.completed).length;
   const pendingCount = totalCardsInView.length - doneCount;
@@ -1060,8 +1052,16 @@ export default function App() {
               </button>
               <button
                 onClick={() => {
+                  const cardsInColumn = cards.filter((card) => card.columnId === columnIdToDelete);
+
                   setColumns(columns.filter((c) => c.id !== columnIdToDelete));
                   setCards(cards.filter((card) => card.columnId !== columnIdToDelete));
+
+                  // Persistir a exclusão no Firestore, senão a coluna volta ao recarregar a página
+                  deleteDoc(doc(db, 'columns', columnIdToDelete));
+                  cardsInColumn.forEach((card) => deleteDoc(doc(db, 'cards', card.id)));
+                  logActivity('Excluiu Coluna', `Excluiu uma coluna e ${cardsInColumn.length} cartão(ões) associado(s).`);
+
                   setColumnIdToDelete(null);
                   setCustomizingColumn(null);
                 }}

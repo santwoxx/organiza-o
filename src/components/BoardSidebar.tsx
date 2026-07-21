@@ -96,15 +96,17 @@ export default function BoardSidebar({
     setEditingBoard(null);
   };
 
-  const getCompanyStats = (boardCompanyNames?: string[], legacyName?: string) => {
-    let compCards = cards;
+  const getCompanyStats = (boardId?: string, boardCompanyNames?: string[], legacyName?: string) => {
+    // Escopo por board: cada quadro só deve contar os cartões que realmente pertencem a ele
+    let compCards = boardId ? cards.filter(c => c.boardId === boardId) : cards;
+
     if (boardCompanyNames && boardCompanyNames.length > 0) {
-      compCards = cards.filter(c => 
-        (c.companyNames && c.companyNames.some(n => boardCompanyNames.includes(n))) || 
+      compCards = compCards.filter(c =>
+        (c.companyNames && c.companyNames.some(n => boardCompanyNames.includes(n))) ||
         (c.companyName && boardCompanyNames.includes(c.companyName))
       );
     } else if (legacyName && legacyName !== 'Todas as Empresas') {
-      compCards = cards.filter(c => c.companyName === legacyName);
+      compCards = compCards.filter(c => c.companyName === legacyName);
     }
     const total = compCards.length;
     const completed = compCards.filter(c => c.completed).length;
@@ -161,7 +163,7 @@ export default function BoardSidebar({
           <div className="space-y-1">
             {boards.map((b) => {
               const isActive = b.id === activeBoardId;
-              const stats = getCompanyStats(b.companyNames, b.companyName);
+              const stats = getCompanyStats(b.id, b.companyNames, b.companyName);
 
               return (
                 <div key={b.id} className="group relative flex items-center">
@@ -287,7 +289,7 @@ export default function BoardSidebar({
 
           <div className="space-y-1.5">
             {companies.filter(c => c.id !== 'all').map((comp) => {
-              const stats = getCompanyStats(comp.name);
+              const stats = getCompanyStats(undefined, [comp.name]);
               const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
               return (
