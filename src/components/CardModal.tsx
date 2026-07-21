@@ -710,6 +710,18 @@ export default function CardModal({
             </div>
           </div>
 
+          {/* Digital Signature Display */}
+          {card?.completed && card.signature && (
+            <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4" /> Assinado Digitalmente
+              </label>
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-center items-center">
+                <img src={card.signature} alt="Assinatura Digital" className="h-20 object-contain" />
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Footer Actions */}

@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Card, Attachment } from '../types';
-import { CheckCircle, Paperclip, CheckSquare, Layers, Clock, AlertCircle, MessageSquare, Send } from 'lucide-react';
+import { CheckCircle, Paperclip, CheckSquare, Layers, Clock, AlertCircle, MessageSquare, Send, PenTool, X } from 'lucide-react';
+import SignatureCanvas from 'react-signature-canvas';
 
 export default function DemandShare() {
   const { cardId } = useParams<{ cardId: string }>();
@@ -11,6 +12,8 @@ export default function DemandShare() {
   const [loading, setLoading] = useState(true);
   const [newAttachment, setNewAttachment] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const sigCanvas = React.useRef<SignatureCanvas>(null);
 
   useEffect(() => {
     const fetchCard = async () => {
@@ -94,11 +97,26 @@ export default function DemandShare() {
 
   const handleMarkAsDone = async () => {
     if (!card || !cardId) return;
-    const updatedCard = { ...card, completed: true };
+    
+    let signatureData = '';
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      signatureData = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+    }
+
+    if (!signatureData) {
+      alert('Por favor, forneça sua assinatura digital para finalizar.');
+      return;
+    }
+
+    const updatedCard = { ...card, completed: true, signature: signatureData };
     setCard(updatedCard);
+    setIsSignatureModalOpen(false);
 
     try {
-      await updateDoc(doc(db, 'cards', cardId), { completed: true });
+      await updateDoc(doc(db, 'cards', cardId), { 
+        completed: true,
+        signature: signatureData
+      });
       alert('Serviço marcado como concluído com sucesso! Muito obrigado.');
     } catch (error) {
       console.error("Error updating status:", error);
@@ -265,24 +283,77 @@ export default function DemandShare() {
 
           {/* Actions */}
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-            {card.completed ? (
-              <div className="flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 py-4 rounded-2xl font-bold text-lg">
-                <CheckCircle className="w-6 h-6" />
-                Serviço Concluído
-              </div>
-            ) : (
-              <button 
-                onClick={handleMarkAsDone}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-indigo-500/25 transition-all cursor-pointer"
+            {!card.completed ? (
+              <button
+                onClick={() => setIsSignatureModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-colors cursor-pointer text-base shadow-lg shadow-indigo-600/20"
               >
-                <CheckCircle className="w-6 h-6" />
-                Confirmar Finalização do Serviço
+                <PenTool className="w-5 h-5" /> Confirmar Finalização e Assinar
               </button>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                <CheckCircle className="w-6 h-6" />
+                <span className="font-bold text-sm">Serviço Finalizado com Sucesso</span>
+                {card.signature && (
+                  <div className="mt-3 flex flex-col items-center bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Assinatura Digital</span>
+                    <img src={card.signature} alt="Assinatura" className="h-16 object-contain" />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
         </div>
       </div>
+      {/* Signature Modal */}
+      {isSignatureModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <PenTool className="w-4 h-4 text-indigo-500" /> Assinatura Digital
+              </h3>
+              <button onClick={() => setIsSignatureModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 flex flex-col items-center">
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-4">
+                Por favor, desenhe sua assinatura no quadro abaixo para confirmar a finalização deste serviço.
+              </p>
+              <div className="bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl w-full cursor-crosshair touch-none">
+                <SignatureCanvas 
+                  ref={sigCanvas}
+                  canvasProps={{ className: 'w-full h-40 rounded-xl' }}
+                  penColor="black"
+                  backgroundColor="transparent"
+                />
+              </div>
+              <button 
+                onClick={() => sigCanvas.current?.clear()}
+                className="mt-3 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Limpar Assinatura
+              </button>
+            </div>
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+              <button 
+                onClick={() => setIsSignatureModalOpen(false)}
+                className="flex-1 py-2.5 font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleMarkAsDone}
+                className="flex-1 py-2.5 font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4" /> Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

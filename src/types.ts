@@ -39,6 +39,7 @@ export interface Card {
   customBorder?: string; // Custom border style (e.g. 'border-2 border-indigo-400')
   order: number;
   completed: boolean;
+  signature?: string; // Base64 signature image from the collaborator
   x?: number; // X position on Canva Flowchart mode
   y?: number; // Y position on Canva Flowchart mode
   connectedTo?: string; // ID of the target card in flowchart
