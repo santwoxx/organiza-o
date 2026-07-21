@@ -379,6 +379,146 @@ export default function BoardSidebar({
           organiZE Workspace v2.0
         </div>
       </div>
+
+      {/* Add Board Popover Form */}
+      {showAddBoardForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
+              <Layout className="w-4 h-4 text-indigo-500" />
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">Criar Novo Quadro</h3>
+            </div>
+            <form onSubmit={handleAddBoard} className="p-4 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Nome do Quadro</label>
+                <input
+                  type="text"
+                  value={newBoardName}
+                  onChange={(e) => setNewBoardName(e.target.value)}
+                  placeholder="Ex: Sites em geral"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 dark:text-slate-300"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Vincular a Empresas (Opcional)</label>
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg max-h-32 overflow-y-auto">
+                  {companies.filter(c => c.id !== 'all').map(c => {
+                    const isSelected = newBoardCompanies.includes(c.name);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setNewBoardCompanies(newBoardCompanies.filter(n => n !== c.name));
+                          } else {
+                            setNewBoardCompanies([...newBoardCompanies, c.name]);
+                          }
+                        }}
+                        className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' 
+                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                  {companies.filter(c => c.id !== 'all').length === 0 && (
+                    <span className="text-xs text-slate-400 italic p-1">Nenhuma empresa criada ainda.</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Se não selecionar nenhuma, o quadro será geral ("Todas as Empresas").</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddBoardForm(false)}
+                  className="flex-1 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-md cursor-pointer"
+                >
+                  Criar Quadro
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Board Modal */}
+      {editingBoard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
+              <Edit2 className="w-4 h-4 text-indigo-500" />
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">Editar Quadro</h3>
+            </div>
+            <form onSubmit={handleEditBoardSubmit} className="p-4 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Nome do Quadro</label>
+                <input
+                  type="text"
+                  value={editBoardName}
+                  onChange={(e) => setEditBoardName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 dark:text-slate-300"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Vincular a Empresas (Opcional)</label>
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg max-h-32 overflow-y-auto">
+                  {companies.filter(c => c.id !== 'all').map(c => {
+                    const isSelected = editBoardCompanies.includes(c.name);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setEditBoardCompanies(editBoardCompanies.filter(n => n !== c.name));
+                          } else {
+                            setEditBoardCompanies([...editBoardCompanies, c.name]);
+                          }
+                        }}
+                        className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' 
+                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Se não selecionar nenhuma, o quadro será geral ("Todas as Empresas").</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBoard(null)}
+                  className="flex-1 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-md cursor-pointer"
+                >
+                  Salvar Edição
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
