@@ -12,8 +12,7 @@ export default function App() {
 
   const ALLOWED_EMAILS = [
     'brisasofc@gmail.com',
-    'isaacbomfim.00@gmail.com',
-    'lucaswelglys@gmail.com'
+    'isaacbomfim.00@gmail.com'
   ];
 
   useEffect(() => {
