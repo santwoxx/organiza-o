@@ -31,7 +31,8 @@ import {
   RefreshCw,
   Menu,
   X,
-  Move
+  Move,
+  Activity
 } from 'lucide-react';
 
 // Models & Data
