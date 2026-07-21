@@ -1004,7 +1004,9 @@ export default function App() {
         <CardModal
           card={editingCard}
           companies={companies}
-          columns={displayedColumns.map((c) => ({ id: c.id, title: c.title }))}
+          boards={boards}
+          columns={columns}
+          initialColumnId={newCardColumnId}
           onClose={() => {
             setIsCardModalOpen(false);
             setEditingCard(null);

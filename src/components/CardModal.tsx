@@ -5,7 +5,9 @@ import { Card, Priority, Subtask, Attachment } from '../types';
 interface CardModalProps {
   card: Card | null;
   companies: { id: string; name: string; color: string }[];
-  columns: { id: string; title: string }[];
+  columns: { id: string; title: string; boardId?: string }[];
+  boards?: { id: string; name: string }[];
+  initialColumnId?: string | null;
   onClose: () => void;
   onSave: (updatedCard: Card) => void;
   onDelete: (cardId: string) => void;
@@ -15,6 +17,8 @@ export default function CardModal({
   card,
   companies,
   columns,
+  boards,
+  initialColumnId,
   onClose,
   onSave,
   onDelete
@@ -24,6 +28,7 @@ export default function CardModal({
   const [priority, setPriority] = React.useState<Priority>('medium');
   const [dueDate, setDueDate] = React.useState('');
   const [companyNames, setCompanyNames] = React.useState<string[]>([]);
+  const [boardId, setBoardId] = React.useState('');
   const [columnId, setColumnId] = React.useState('');
   const [subtasks, setSubtasks] = React.useState<Subtask[]>([]);
   const [newSubtaskText, setNewSubtaskText] = React.useState('');
@@ -48,6 +53,7 @@ export default function CardModal({
       setDueDate(card.dueDate ? card.dueDate.substring(0, 16) : ''); // Format to datetime-local
       setCompanyNames(card.companyNames || (card.companyName ? [card.companyName] : []));
       setColumnId(card.columnId);
+      setBoardId(card.boardId || columns.find(c => c.id === card.columnId)?.boardId || '');
       setSubtasks(card.subtasks || []);
       setAttachments(card.attachments || []);
 
@@ -66,12 +72,16 @@ export default function CardModal({
       else setBgTint('none');
     } else {
       // Default state for a NEW card
+      const defaultColId = initialColumnId || columns[0]?.id || '';
+      const defaultBoardId = columns.find(c => c.id === defaultColId)?.boardId || '';
+      
       setTitle('');
       setDescription('');
       setPriority('medium');
       setDueDate('');
       setCompanyNames([]);
-      setColumnId(columns[0]?.id || '');
+      setColumnId(defaultColId);
+      setBoardId(defaultBoardId);
       setSubtasks([]);
       setAttachments([]);
       setAccentColor('indigo');
@@ -212,7 +222,7 @@ export default function CardModal({
       ...(card || {}),
       id: card ? card.id : `card-${Date.now()}`,
       columnId,
-      boardId: card ? card.boardId : 'board-general',
+      boardId,
       title: title.trim(),
       description: description.trim(),
       priority,
@@ -335,21 +345,46 @@ export default function CardModal({
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-1 sm:col-span-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5" /> Coluna / Estado
+                <Tag className="w-3.5 h-3.5" /> Localização do Cartão (Mover)
               </label>
-              <select
-                value={columnId}
-                onChange={(e) => setColumnId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm text-slate-700 dark:text-slate-300 transition-all font-medium"
-              >
-                {columns.map((col) => (
-                  <option key={col.id} value={col.id}>
-                    {col.title}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                {boards && (
+                  <select
+                    value={boardId}
+                    onChange={(e) => {
+                      const newBoardId = e.target.value;
+                      setBoardId(newBoardId);
+                      const boardCols = columns.filter(c => c.boardId === newBoardId);
+                      if (boardCols.length > 0) {
+                        setColumnId(boardCols[0].id);
+                      }
+                    }}
+                    className="w-1/2 px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm text-slate-700 dark:text-slate-300 transition-all font-medium"
+                  >
+                    {boards.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        Quadro: {b.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                
+                <select
+                  value={columnId}
+                  onChange={(e) => setColumnId(e.target.value)}
+                  className="flex-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm text-slate-700 dark:text-slate-300 transition-all font-medium"
+                >
+                  {columns
+                    .filter(col => !boardId || col.boardId === boardId)
+                    .map((col) => (
+                    <option key={col.id} value={col.id}>
+                      Coluna: {col.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
