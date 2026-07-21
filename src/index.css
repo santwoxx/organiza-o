@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;850;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom background pattern for Clean Minimalism theme */
+.clean-dots {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+.dark .clean-dots {
+  background-color: #0b0f19;
+  background-image: radial-gradient(#1e293b 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: white !important;
+  }
+
+  /* Expand canvas for print */
+  #flowchart-stage {
+    overflow: visible !important;
+    background: white !important;
+    position: absolute !important;
+    left: 0;
+    top: 0;
+  }
+  
+  /* Hide UI elements */
+  .print\:hidden {
+    display: none !important;
+  }
+}

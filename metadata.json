@@ -1,0 +1,6 @@
+{
+  "name": "organiZE",
+  "description": "Sistema de organização estilo Trello com colunas personalizáveis estilo Canva (redimensionamento, cores, formatos), suporte a múltiplas empresas, relatórios de impressão semanais, notificações de prazos e filtros de prioridade.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
