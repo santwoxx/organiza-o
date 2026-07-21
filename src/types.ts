@@ -14,6 +14,13 @@ export interface Attachment {
   fileSize?: string;
 }
 
+export interface Comment {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: string;
+}
+
 export interface Card {
   id: string;
   columnId: string;
@@ -21,9 +28,11 @@ export interface Card {
   title: string;
   description: string;
   priority: Priority;
+  createdAt?: string; // ISO format for pending time calculation
   dueDate?: string; // ISO format
   subtasks: Subtask[];
   attachments?: Attachment[]; // Attached links or files
+  comments?: Comment[]; // Comments from external link
   companyName: string; // The company it belongs to
   customBg?: string; // Tailwind color class or hex (e.g. 'bg-red-50' or #ffebe6)
   customBorder?: string; // Custom border style (e.g. 'border-2 border-indigo-400')
