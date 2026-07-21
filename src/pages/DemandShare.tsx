@@ -13,6 +13,7 @@ export default function DemandShare() {
   const [newAttachment, setNewAttachment] = useState('');
   const [newComment, setNewComment] = useState('');
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState('');
   const sigCanvas = React.useRef<SignatureCanvas>(null);
 
   useEffect(() => {
@@ -32,6 +33,37 @@ export default function DemandShare() {
     };
     fetchCard();
   }, [cardId]);
+
+  useEffect(() => {
+    if (!card || !card.dueDate || card.completed) return;
+
+    const updateTimer = () => {
+      const due = new Date(card.dueDate).getTime();
+      const now = new Date().getTime();
+      const diff = due - now;
+
+      if (diff <= 0) {
+        const createdDate = card.createdAt 
+          ? new Date(card.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' }) 
+          : 'Data desconhecida';
+        setTimeRemaining(`⚠️ Pendente desde: ${createdDate}`);
+      } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const mins = Math.floor((diff / (1000 * 60)) % 60);
+        const secs = Math.floor((diff / 1000) % 60);
+        
+        let str = '';
+        if (days > 0) str += `${days}d `;
+        str += `${hours.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+        setTimeRemaining(`⏱️ Tempo Restante: ${str}`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [card]);
 
   const handleToggleSubtask = async (subtaskId: string) => {
     if (!card || !cardId) return;
@@ -163,8 +195,19 @@ export default function DemandShare() {
           <h1 className="text-3xl font-bold mb-2">{card.title}</h1>
           <div className="flex flex-wrap items-center gap-4 text-indigo-100 text-sm mt-4">
             <span className="flex items-center gap-1 bg-indigo-700/50 px-3 py-1 rounded-full"><Clock className="w-4 h-4"/> {getPendingTime(card.createdAt)}</span>
-            {card.dueDate && (
-              <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4"/> Prazo: {new Date(card.dueDate).toLocaleDateString()}</span>
+            {card.dueDate && !card.completed && (
+              <span className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold shadow-sm ${
+                timeRemaining.includes('Pendente desde') 
+                  ? 'bg-rose-500 text-white animate-pulse' 
+                  : 'bg-emerald-500/90 text-white'
+              }`}>
+                {timeRemaining}
+              </span>
+            )}
+            {card.dueDate && card.completed && (
+              <span className="flex items-center gap-1 px-3 py-1 rounded-full font-bold shadow-sm bg-emerald-600 text-white">
+                <CheckCircle className="w-4 h-4"/> Entregue no Prazo
+              </span>
             )}
             <span className="flex items-center gap-1"><Layers className="w-4 h-4"/> Prioridade {card.priority}</span>
           </div>
