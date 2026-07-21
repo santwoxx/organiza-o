@@ -54,37 +54,18 @@ import FlowchartCanvas from '../components/FlowchartCanvas';
 
 export default function App() {
   // --- PERSISTENT STATE ---
-  const [companies, setCompanies] = useState<Company[]>(() => {
-    const saved = localStorage.getItem('canvaboard_companies');
-    return saved ? JSON.parse(saved) : INITIAL_COMPANIES;
-  });
+  const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES);
 
-  const [boards, setBoards] = useState<Board[]>(() => {
-    const saved = localStorage.getItem('canvaboard_boards');
-    return saved ? JSON.parse(saved) : INITIAL_BOARDS;
-  });
+  const [boards, setBoards] = useState<Board[]>(INITIAL_BOARDS);
 
   const [activeBoardId, setActiveBoardId] = useState<string>(() => {
     const saved = localStorage.getItem('canvaboard_active_board');
     return saved || 'board-general';
   });
 
-  const [columns, setColumns] = useState<Column[]>(() => {
-    const saved = localStorage.getItem('canvaboard_columns');
-    if (saved) return JSON.parse(saved);
-    
-    // Generate initial columns for all default boards
-    const allCols: Column[] = [];
-    INITIAL_BOARDS.forEach((b) => {
-      allCols.push(...getInitialColumns(b.id));
-    });
-    return allCols;
-  });
+  const [columns, setColumns] = useState<Column[]>([]);
 
-  const [cards, setCards] = useState<Card[]>(() => {
-    const saved = localStorage.getItem('canvaboard_cards');
-    return saved ? JSON.parse(saved) : getInitialCards();
-  });
+  const [cards, setCards] = useState<Card[]>([]);
 
   // Workspace visual theme (Canva style)
   const [workspaceTheme, setWorkspaceTheme] = useState<string>(() => {
@@ -124,14 +105,20 @@ export default function App() {
 
   // Escutar Firestore em vez de LocalStorage (Simplificado)
   useEffect(() => {
+    // Clear old localStorage items to prevent stale data mixing
+    localStorage.removeItem('canvaboard_companies');
+    localStorage.removeItem('canvaboard_boards');
+    localStorage.removeItem('canvaboard_columns');
+    localStorage.removeItem('canvaboard_cards');
+
     const unsubCards = onSnapshot(collection(db, 'cards'), (snapshot) => {
       const cardsData = snapshot.docs.map(doc => doc.data() as Card);
-      if (cardsData.length > 0) setCards(cardsData);
+      setCards(cardsData);
     });
 
     const unsubCols = onSnapshot(collection(db, 'columns'), (snapshot) => {
       const colsData = snapshot.docs.map(doc => doc.data() as Column);
-      if (colsData.length > 0) setColumns(colsData);
+      setColumns(colsData);
     });
 
     return () => {

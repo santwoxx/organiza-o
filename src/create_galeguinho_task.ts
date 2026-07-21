@@ -39,7 +39,22 @@ Por favor, faça as implementações pendentes listadas no checklist abaixo, ane
     customBorder: 'border-2 border-emerald-500'
   };
 
+  const newColumn = {
+    id: 'col-todo',
+    boardId: 'board-general',
+    title: 'Estoque Unificado 📦',
+    order: 0,
+    width: 320,
+    borderRadius: 'rounded-xl',
+    bgClass: 'bg-slate-50/90 dark:bg-slate-900/40',
+    headerBgClass: 'bg-slate-100 dark:bg-slate-800',
+    borderClass: 'border border-slate-200/80 dark:border-slate-800',
+    textColor: 'text-slate-800 dark:text-slate-200',
+    icon: 'Pin'
+  };
+
   try {
+    await setDoc(doc(db, 'columns', 'col-todo'), newColumn);
     await setDoc(doc(db, 'cards', cardId), newCard);
     console.log(`\n\n=== SUCESSO! ===`);
     console.log(`A demanda para o Galeguinho foi criada no banco de dados!`);
