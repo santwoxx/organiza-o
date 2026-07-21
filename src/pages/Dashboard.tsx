@@ -51,6 +51,7 @@ import ColumnCustomizer from '../components/ColumnCustomizer';
 import NotificationCenter from '../components/NotificationCenter';
 import PrintReport from '../components/PrintReport';
 import FlowchartCanvas from '../components/FlowchartCanvas';
+import ActivityLogModal from '../components/ActivityLogModal';
 
 export default function App() {
   // --- PERSISTENT STATE ---
@@ -93,6 +94,7 @@ export default function App() {
   const [customizingColumn, setCustomizingColumn] = useState<Column | null>(null);
   const [columnIdToDelete, setColumnIdToDelete] = useState<string | null>(null);
   const [isPrintReportOpen, setIsPrintReportOpen] = useState(false);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   // Notifications State
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -136,7 +138,24 @@ export default function App() {
   };
 
   const removeCard = async (id: string) => {
-    try { await deleteDoc(doc(db, 'cards', id)); } catch (e) { console.error(e); }
+    try { 
+      await deleteDoc(doc(db, 'cards', id)); 
+      logActivity('Excluiu Cartão', `Cartão excluído com ID: ${id}`);
+    } catch (e) { console.error(e); }
+  };
+
+  const logActivity = async (action: string, details: string) => {
+    try {
+      const userEmail = auth.currentUser?.email || 'Usuário Desconhecido';
+      const logId = `log-${Date.now()}`;
+      await setDoc(doc(db, 'activity_logs', logId), {
+        id: logId,
+        userEmail,
+        action,
+        details,
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) { console.error('Error logging activity', e); }
   };
 
   // Periodic deadline verification loop (every 30 seconds)
@@ -147,10 +166,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [cards]);
 
-  // Set default user session info
-  useEffect(() => {
-    localStorage.setItem('canva_user_email', 'brisasofc@gmail.com');
-  }, []);
+
 
   // --- NOTIFICATION CALCULATOR ---
   const updateNotifications = (currentCards: Card[]) => {
@@ -331,8 +347,7 @@ export default function App() {
   };
 
   const handleSaveCard = (savedCard: Card) => {
-    // If the card has a new columnId because it was moved via modal, we adapt
-    // If we were creating a card (editingCard is null), we append it
+    const isNew = !editingCard;
     if (!editingCard) {
       // Find order
       const colCards = cards.filter((c) => c.columnId === savedCard.columnId);
@@ -346,10 +361,12 @@ export default function App() {
 
       setCards([...cards, savedCard]);
       persistCard(savedCard);
+      logActivity('Criou Cartão', `Criou o cartão: ${savedCard.title}`);
     } else {
       // Update existing card
       setCards(cards.map((c) => (c.id === savedCard.id ? savedCard : c)));
       persistCard(savedCard);
+      logActivity('Editou Cartão', `Editou o cartão: ${savedCard.title}`);
     }
 
     setIsCardModalOpen(false);
@@ -370,6 +387,7 @@ export default function App() {
     const updated = { ...card, completed: !card.completed };
     setCards(cards.map((c) => (c.id === cardId ? updated : c)));
     persistCard(updated);
+    logActivity('Marcou Conclusão', `Alterou o status de conclusão do cartão: ${card.title}`);
   };
 
   const handleUpdateCard = (updatedCard: Card) => {
@@ -487,17 +505,19 @@ export default function App() {
     setCompanyToDelete(null);
   };
 
-  const handleAddCustomBoard = (name: string, companyName: string, color: string) => {
+  const handleAddCustomBoard = (name: string, companyNames: string[], color: string) => {
     const newBoardId = `board-${Date.now()}`;
     const newBoard: Board = {
       id: newBoardId,
       name,
-      companyName,
+      companyNames,
+      companyName: companyNames.length > 0 ? companyNames[0] : 'Todas as Empresas', // fallback
       color,
-      description: `Quadro personalizado para gerenciar ${companyName}.`
+      description: `Quadro personalizado para gerenciar ${companyNames.join(', ')}.`
     };
 
     setBoards([...boards, newBoard]);
+    logActivity('Criou Quadro', `Criou o quadro personalizado: ${name}`);
     
     // Auto populate this new board with default columns so it is ready to use
     const newCols = getInitialColumns(newBoardId);
@@ -517,8 +537,14 @@ export default function App() {
       // If we are on the general unified board, show all cards that match active filter.
       // If we are on a specific company board, only show cards belonging to that board's company!
       if (activeBoard.id !== 'board-general') {
-        if (card.companyName !== activeBoard.companyName) {
-          return false;
+        const boardCompanies = activeBoard.companyNames || [activeBoard.companyName].filter(Boolean);
+        const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
+        
+        // Se o board não tem empresas listadas, a regra não se aplica
+        if (boardCompanies.length > 0) {
+          // O cartão deve pertencer a PELO MENOS UMA das empresas do Board
+          const matchesBoard = cardCompanies.some(c => boardCompanies.includes(c));
+          if (!matchesBoard) return false;
         }
       }
 
@@ -539,8 +565,11 @@ export default function App() {
       }
 
       // 4. Top Header Company filter (only active on general view)
-      if (activeBoard.id === 'board-general' && companyFilter !== 'all' && card.companyName !== companyFilter) {
-        return false;
+      if (activeBoard.id === 'board-general' && companyFilter !== 'all') {
+        const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
+        if (!cardCompanies.includes(companyFilter)) {
+          return false;
+        }
       }
 
       return true;
@@ -558,8 +587,12 @@ export default function App() {
     })
     .sort((a, b) => a.order - b.order);
 
-  // Statistics calculation
-  const totalCardsInView = cards.filter((c) => activeBoard.id === 'board-general' || c.companyName === activeBoard.companyName);
+  const totalCardsInView = cards.filter((c) => {
+    if (activeBoard.id === 'board-general') return true;
+    const boardCompanies = activeBoard.companyNames || [activeBoard.companyName].filter(Boolean);
+    const cardCompanies = c.companyNames || [c.companyName].filter(Boolean);
+    return cardCompanies.some(comp => boardCompanies.includes(comp));
+  });
   const doneCount = totalCardsInView.filter((c) => c.completed).length;
   const pendingCount = totalCardsInView.length - doneCount;
 
@@ -736,6 +769,13 @@ export default function App() {
 
           {/* Filter badges */}
           <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto justify-end">
+            <button
+              onClick={() => setIsLogModalOpen(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Activity className="w-3.5 h-3.5 text-indigo-500" /> Histórico
+            </button>
+
             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               <Filter className="w-3.5 h-3.5" /> Filtrar:
             </div>
@@ -971,6 +1011,10 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {isLogModalOpen && (
+        <ActivityLogModal onClose={() => setIsLogModalOpen(false)} />
       )}
 
     </div>

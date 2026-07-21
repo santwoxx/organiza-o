@@ -26,7 +26,7 @@ interface BoardSidebarProps {
   onOpenReport: () => void;
   onExportData: () => void;
   onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onAddCustomBoard: (name: string, companyName: string, color: string) => void;
+  onAddCustomBoard: (name: string, companyNames: string[], color: string) => void;
   onAddCompany: (name: string, tagline: string, color: string) => void;
   onDeleteCompany: (companyId: string) => void;
 }
@@ -46,7 +46,7 @@ export default function BoardSidebar({
 }: BoardSidebarProps) {
   const [showAddBoardForm, setShowAddBoardForm] = React.useState(false);
   const [newBoardName, setNewBoardName] = React.useState('');
-  const [newBoardCompany, setNewBoardCompany] = React.useState('');
+  const [newBoardCompanies, setNewBoardCompanies] = React.useState<string[]>([]);
   const [newBoardColor, setNewBoardColor] = React.useState('indigo');
 
   // New state for adding companies
@@ -57,20 +57,13 @@ export default function BoardSidebar({
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Sync default company selection when companies list changes or is loaded
-  React.useEffect(() => {
-    const activeCompanies = companies.filter(c => c.id !== 'all');
-    if (activeCompanies.length > 0 && !newBoardCompany) {
-      setNewBoardCompany(activeCompanies[0].name);
-    }
-  }, [companies, newBoardCompany]);
-
   const handleAddBoard = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBoardName.trim()) return;
 
-    onAddCustomBoard(newBoardName.trim(), newBoardCompany || 'Nexus Tech', newBoardColor);
+    onAddCustomBoard(newBoardName.trim(), newBoardCompanies, newBoardColor);
     setNewBoardName('');
+    setNewBoardCompanies([]);
     setShowAddBoardForm(false);
   };
 
@@ -87,10 +80,15 @@ export default function BoardSidebar({
     setShowAddCompanyForm(false);
   };
 
-  const getCompanyStats = (companyName: string) => {
+  const getCompanyStats = (boardCompanyNames?: string[], legacyName?: string) => {
     let compCards = cards;
-    if (companyName !== 'Todas as Empresas') {
-      compCards = cards.filter(c => c.companyName === companyName);
+    if (boardCompanyNames && boardCompanyNames.length > 0) {
+      compCards = cards.filter(c => 
+        (c.companyNames && c.companyNames.some(n => boardCompanyNames.includes(n))) || 
+        (c.companyName && boardCompanyNames.includes(c.companyName))
+      );
+    } else if (legacyName && legacyName !== 'Todas as Empresas') {
+      compCards = cards.filter(c => c.companyName === legacyName);
     }
     const total = compCards.length;
     const completed = compCards.filter(c => c.completed).length;
@@ -158,17 +156,33 @@ export default function BoardSidebar({
                 />
               </div>
 
-              <div className="space-y-1">
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">Vincular a Empresa</span>
-                <select
-                  value={newBoardCompany}
-                  onChange={(e) => setNewBoardCompany(e.target.value)}
-                  className="w-full px-1.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] outline-none text-slate-700 dark:text-slate-300 font-medium"
-                >
-                  {companies.filter(c => c.id !== 'all').map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+              <div className="space-y-1.5">
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">Vincular a Empresas (Múltipla Seleção)</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {companies.filter(c => c.id !== 'all').map(c => {
+                    const isSelected = newBoardCompanies.includes(c.name);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setNewBoardCompanies(newBoardCompanies.filter(n => n !== c.name));
+                          } else {
+                            setNewBoardCompanies([...newBoardCompanies, c.name]);
+                          }
+                        }}
+                        className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' 
+                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-1">
@@ -193,7 +207,7 @@ export default function BoardSidebar({
           <div className="space-y-1">
             {boards.map((b) => {
               const isActive = b.id === activeBoardId;
-              const stats = getCompanyStats(b.companyName);
+              const stats = getCompanyStats(b.companyNames, b.companyName);
 
               return (
                 <button
@@ -223,8 +237,10 @@ export default function BoardSidebar({
                     }`} />
                     <div className="truncate text-xs">
                       <p className="font-semibold truncate leading-none mb-0.5">{b.name}</p>
-                      <p className={`text-[9px] ${isActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                        {b.companyName}
+                      <p className={`text-[9px] truncate ${isActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {b.companyNames && b.companyNames.length > 0 
+                          ? b.companyNames.join(', ') 
+                          : (b.companyName || 'Todas as Empresas')}
                       </p>
                     </div>
                   </div>

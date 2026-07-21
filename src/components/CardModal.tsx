@@ -23,7 +23,7 @@ export default function CardModal({
   const [description, setDescription] = React.useState('');
   const [priority, setPriority] = React.useState<Priority>('medium');
   const [dueDate, setDueDate] = React.useState('');
-  const [companyName, setCompanyName] = React.useState('');
+  const [companyNames, setCompanyNames] = React.useState<string[]>([]);
   const [columnId, setColumnId] = React.useState('');
   const [subtasks, setSubtasks] = React.useState<Subtask[]>([]);
   const [newSubtaskText, setNewSubtaskText] = React.useState('');
@@ -46,7 +46,7 @@ export default function CardModal({
       setDescription(card.description);
       setPriority(card.priority);
       setDueDate(card.dueDate ? card.dueDate.substring(0, 16) : ''); // Format to datetime-local
-      setCompanyName(card.companyName);
+      setCompanyNames(card.companyNames || (card.companyName ? [card.companyName] : []));
       setColumnId(card.columnId);
       setSubtasks(card.subtasks || []);
       setAttachments(card.attachments || []);
@@ -70,7 +70,7 @@ export default function CardModal({
       setDescription('');
       setPriority('medium');
       setDueDate('');
-      setCompanyName(companies[1]?.name || 'Nexus Tech');
+      setCompanyNames([]);
       setColumnId(columns[0]?.id || '');
       setSubtasks([]);
       setAttachments([]);
@@ -218,7 +218,8 @@ export default function CardModal({
       priority,
       subtasks,
       attachments, // Persist attachments list!
-      companyName,
+      companyNames,
+      companyName: companyNames.length > 0 ? companyNames[0] : 'Todas as Empresas',
       customBg: mergedBg,
       order: card ? card.order : 999,
       completed: card ? card.completed : false
@@ -305,19 +306,33 @@ export default function CardModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Briefcase className="w-3.5 h-3.5" /> Empresa Vinculada
+                <Briefcase className="w-3.5 h-3.5" /> Empresa Vinculada (Múltipla)
               </label>
-              <select
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm text-slate-700 dark:text-slate-300 transition-all font-medium"
-              >
-                {businessCompanies.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {businessCompanies.map((c) => {
+                  const isSelected = companyNames.includes(c.name);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setCompanyNames(companyNames.filter(n => n !== c.name));
+                        } else {
+                          setCompanyNames([...companyNames, c.name]);
+                        }
+                      }}
+                      className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' 
+                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-1.5">

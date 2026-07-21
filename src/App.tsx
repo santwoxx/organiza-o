@@ -10,9 +10,20 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const ALLOWED_EMAILS = [
+    'brisasofc@gmail.com',
+    'isaacbomfim.00@gmail.com',
+    'lucaswelglys@gmail.com'
+  ];
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser && currentUser.email && !ALLOWED_EMAILS.includes(currentUser.email)) {
+        await auth.signOut();
+        setUser(null);
+      } else {
+        setUser(currentUser);
+      }
       setLoading(false);
     });
     return () => unsubscribe();

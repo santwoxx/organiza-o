@@ -7,9 +7,23 @@ import { Sparkles, Layers } from 'lucide-react';
 export default function Login() {
   const navigate = useNavigate();
 
+  const ALLOWED_EMAILS = [
+    'brisasofc@gmail.com',
+    'isaacbomfim.00@gmail.com',
+    'lucaswelglys@gmail.com'
+  ];
+
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const userEmail = result.user.email;
+      
+      if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
+        await auth.signOut();
+        alert('Acesso negado. Apenas administradores autorizados podem logar no sistema.');
+        return;
+      }
+      
       navigate('/');
     } catch (error) {
       console.error('Login Error:', error);

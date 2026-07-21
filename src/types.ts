@@ -33,7 +33,8 @@ export interface Card {
   subtasks: Subtask[];
   attachments?: Attachment[]; // Attached links or files
   comments?: Comment[]; // Comments from external link
-  companyName: string; // The company it belongs to
+  companyName?: string; // Legacy fallback
+  companyNames?: string[]; // Multiple companies array
   customBg?: string; // Tailwind color class or hex (e.g. 'bg-red-50' or #ffebe6)
   customBorder?: string; // Custom border style (e.g. 'border-2 border-indigo-400')
   order: number;
@@ -61,7 +62,8 @@ export interface Column {
 export interface Board {
   id: string;
   name: string;
-  companyName: string; // Associated company
+  companyName?: string; // Legacy fallback
+  companyNames?: string[]; // Multiple companies array
   description?: string;
   color: string; // Primary brand color theme
 }
@@ -77,7 +79,8 @@ export interface AppNotification {
   id: string;
   cardId: string;
   cardTitle: string;
-  companyName: string;
+  companyName?: string;
+  companyNames?: string[];
   dueDate: string;
   type: 'overdue' | 'due_soon'; // Overdue or due in < 24h
   read: boolean;
