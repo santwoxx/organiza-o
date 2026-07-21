@@ -209,13 +209,13 @@ export default function CardModal({
     const mergedBg = `${borderAccentClass}${tintClass}`;
 
     const savedCard: Card = {
+      ...(card || {}),
       id: card ? card.id : `card-${Date.now()}`,
       columnId,
       boardId: card ? card.boardId : 'board-general',
       title: title.trim(),
       description: description.trim(),
       priority,
-      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       subtasks,
       attachments, // Persist attachments list!
       companyName,
@@ -223,6 +223,23 @@ export default function CardModal({
       order: card ? card.order : 999,
       completed: card ? card.completed : false
     };
+
+    if (dueDate) {
+      savedCard.dueDate = new Date(dueDate).toISOString();
+    } else {
+      delete savedCard.dueDate; // Prevent Firebase undefined error
+    }
+
+    if (!savedCard.createdAt) {
+      savedCard.createdAt = new Date().toISOString();
+    }
+
+    // Limpa undefineds perigosos que quebram o Firestore
+    Object.keys(savedCard).forEach(key => {
+      if (savedCard[key as keyof Card] === undefined) {
+        delete savedCard[key as keyof Card];
+      }
+    });
 
     onSave(savedCard);
   };
