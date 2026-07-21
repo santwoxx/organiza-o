@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Sliders,
   FolderLock,
-  Trash2
+  Trash2,
+  Edit2
 } from 'lucide-react';
 import { Board, Company, Card } from '../types';
 
@@ -27,6 +28,7 @@ interface BoardSidebarProps {
   onExportData: () => void;
   onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onAddCustomBoard: (name: string, companyNames: string[], color: string) => void;
+  onEditBoard: (boardId: string, name: string, companyNames: string[], color: string) => void;
   onAddCompany: (name: string, tagline: string, color: string) => void;
   onDeleteCompany: (companyId: string) => void;
 }
@@ -41,6 +43,7 @@ export default function BoardSidebar({
   onExportData,
   onImportData,
   onAddCustomBoard,
+  onEditBoard,
   onAddCompany,
   onDeleteCompany
 }: BoardSidebarProps) {
@@ -54,6 +57,11 @@ export default function BoardSidebar({
   const [newCompanyName, setNewCompanyName] = React.useState('');
   const [newCompanyTagline, setNewCompanyTagline] = React.useState('');
   const [newCompanyColor, setNewCompanyColor] = React.useState('blue');
+
+  const [editingBoard, setEditingBoard] = React.useState<Board | null>(null);
+  const [editBoardName, setEditBoardName] = React.useState('');
+  const [editBoardCompanies, setEditBoardCompanies] = React.useState<string[]>([]);
+  const [editBoardColor, setEditBoardColor] = React.useState('indigo');
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -78,6 +86,14 @@ export default function BoardSidebar({
     setNewCompanyName('');
     setNewCompanyTagline('');
     setShowAddCompanyForm(false);
+  };
+
+  const handleEditBoardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBoard || !editBoardName.trim()) return;
+    
+    onEditBoard(editingBoard.id, editBoardName.trim(), editBoardCompanies, editBoardColor);
+    setEditingBoard(null);
   };
 
   const getCompanyStats = (boardCompanyNames?: string[], legacyName?: string) => {
@@ -141,68 +157,6 @@ export default function BoardSidebar({
             </button>
           </div>
 
-          {/* Add Board Popover Form */}
-          {showAddBoardForm && (
-            <form onSubmit={handleAddBoard} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5 my-2">
-              <div className="space-y-1">
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">Nome do Quadro</span>
-                <input
-                  type="text"
-                  value={newBoardName}
-                  onChange={(e) => setNewBoardName(e.target.value)}
-                  placeholder="Ex: Marketing Digital"
-                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs outline-none text-slate-800 dark:text-slate-200 font-medium"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">Vincular a Empresas (Múltipla Seleção)</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {companies.filter(c => c.id !== 'all').map(c => {
-                    const isSelected = newBoardCompanies.includes(c.name);
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            setNewBoardCompanies(newBoardCompanies.filter(n => n !== c.name));
-                          } else {
-                            setNewBoardCompanies([...newBoardCompanies, c.name]);
-                          }
-                        }}
-                        className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' 
-                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
-                        }`}
-                      >
-                        {c.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowAddBoardForm(false)}
-                  className="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[10px]"
-                >
-                  Criar Quadro
-                </button>
-              </div>
-            </form>
-          )}
-
           {/* Boards list buttons */}
           <div className="space-y-1">
             {boards.map((b) => {
@@ -210,47 +164,49 @@ export default function BoardSidebar({
               const stats = getCompanyStats(b.companyNames, b.companyName);
 
               return (
-                <button
-                  key={b.id}
-                  onClick={() => onSelectBoard(b.id)}
-                  className={`w-full flex items-center justify-between p-2 rounded-xl transition-all text-left cursor-pointer group ${
-                    isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 font-bold border border-indigo-100 dark:border-indigo-950'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/60 hover:text-slate-950 dark:hover:text-white border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${
-                      b.id === 'board-general'
-                        ? 'bg-indigo-500'
-                        : b.color === 'blue'
-                        ? 'bg-blue-500'
-                        : b.color === 'amber'
-                        ? 'bg-amber-500'
-                        : b.color === 'purple'
-                        ? 'bg-purple-500'
-                        : b.color === 'emerald'
-                        ? 'bg-emerald-500'
-                        : b.color === 'rose'
-                        ? 'bg-rose-500'
-                        : 'bg-indigo-500'
-                    }`} />
-                    <div className="truncate text-xs">
-                      <p className="font-semibold truncate leading-none mb-0.5">{b.name}</p>
-                      <p className={`text-[9px] truncate ${isActive ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                        {b.companyNames && b.companyNames.length > 0 
-                          ? b.companyNames.join(', ') 
-                          : (b.companyName || 'Todas as Empresas')}
-                      </p>
+                <div key={b.id} className="group relative flex items-center">
+                  <button
+                    onClick={() => onSelectBoard(b.id)}
+                    className={`flex-1 w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center gap-3 relative overflow-hidden group ${
+                      isActive 
+                        ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold shadow-sm border border-indigo-100 dark:border-indigo-800/60' 
+                        : 'text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent'
+                    }`}
+                  >
+                    <Layout className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate text-sm">{b.name}</div>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 truncate flex gap-2">
+                        <span>{b.companyNames?.join(', ') || b.companyName}</span>
+                      </div>
                     </div>
-                  </div>
-
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
-                    isActive ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400'
-                  }`}>
-                    {stats.completed}/{stats.total}
-                  </span>
-                </button>
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                        {stats.total}
+                      </div>
+                      {stats.completed > 0 && stats.completed === stats.total && (
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                      )}
+                    </div>
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 bg-indigo-500 rounded-r-full" />
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingBoard(b);
+                      setEditBoardName(b.name);
+                      setEditBoardCompanies(b.companyNames || (b.companyName && b.companyName !== 'Todas as Empresas' ? [b.companyName] : []));
+                      setEditBoardColor(b.color || 'indigo');
+                    }}
+                    className={`absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 transition-all ${isActive ? 'opacity-100 bg-white/50 dark:bg-slate-900/50' : ''}`}
+                    title="Editar Quadro"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               );
             })}
           </div>

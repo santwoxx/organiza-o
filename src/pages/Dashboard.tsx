@@ -106,7 +106,7 @@ export default function App() {
 
   const navigate = useNavigate();
 
-  // Escutar Firestore em vez de LocalStorage (Simplificado)
+  // Escutar Firestore em vez de LocalStorage
   useEffect(() => {
     // Clear old localStorage items to prevent stale data mixing
     localStorage.removeItem('canvaboard_companies');
@@ -115,18 +115,47 @@ export default function App() {
     localStorage.removeItem('canvaboard_cards');
 
     const unsubCards = onSnapshot(collection(db, 'cards'), (snapshot) => {
-      const cardsData = snapshot.docs.map(doc => doc.data() as Card);
-      setCards(cardsData);
+      setCards(snapshot.docs.map(doc => doc.data() as Card));
     });
 
     const unsubCols = onSnapshot(collection(db, 'columns'), (snapshot) => {
-      const colsData = snapshot.docs.map(doc => doc.data() as Column);
-      setColumns(colsData);
+      setColumns(snapshot.docs.map(doc => doc.data() as Column));
+    });
+
+    const unsubBoards = onSnapshot(collection(db, 'boards'), async (snapshot) => {
+      if (snapshot.empty) {
+        // Inicializar com INITIAL_BOARDS se não existir nada na nuvem
+        setBoards(INITIAL_BOARDS);
+        for (const b of INITIAL_BOARDS) {
+          await setDoc(doc(db, 'boards', b.id), b);
+        }
+      } else {
+        setBoards(snapshot.docs.map(doc => doc.data() as Board));
+      }
+    });
+
+    const unsubCompanies = onSnapshot(collection(db, 'companies'), async (snapshot) => {
+      if (snapshot.empty) {
+        // Inicializar com INITIAL_COMPANIES
+        setCompanies(INITIAL_COMPANIES);
+        for (const c of INITIAL_COMPANIES) {
+          await setDoc(doc(db, 'companies', c.id), c);
+        }
+      } else {
+        // Sort specifically to keep 'all' at top
+        const comps = snapshot.docs.map(doc => doc.data() as Company);
+        const allComp = comps.find(c => c.id === 'all');
+        const rest = comps.filter(c => c.id !== 'all');
+        if (allComp) setCompanies([allComp, ...rest]);
+        else setCompanies(comps);
+      }
     });
 
     return () => {
       unsubCards();
       unsubCols();
+      unsubBoards();
+      unsubCompanies();
     };
   }, []);
 
@@ -136,6 +165,22 @@ export default function App() {
 
   const persistColumn = async (column: Column) => {
     try { await setDoc(doc(db, 'columns', column.id), column); } catch (e) { console.error(e); }
+  };
+
+  const persistBoard = async (board: Board) => {
+    try { await setDoc(doc(db, 'boards', board.id), board); } catch (e) { console.error(e); }
+  };
+
+  const persistCompany = async (company: Company) => {
+    try { await setDoc(doc(db, 'companies', company.id), company); } catch (e) { console.error(e); }
+  };
+
+  const removeCompany = async (id: string) => {
+    try { await deleteDoc(doc(db, 'companies', id)); } catch (e) { console.error(e); }
+  };
+
+  const removeBoard = async (id: string) => {
+    try { await deleteDoc(doc(db, 'boards', id)); } catch (e) { console.error(e); }
   };
 
   const removeCard = async (id: string) => {
@@ -464,6 +509,8 @@ export default function App() {
       color
     };
     setCompanies([...companies, newComp]);
+    persistCompany(newComp);
+    logActivity('Criou Empresa', `Adicionou a empresa: ${name}`);
   };
 
   const handleDeleteCompany = (companyId: string) => {
@@ -497,6 +544,22 @@ export default function App() {
     // Filter out cards of deleted boards or cards that are explicitly associated with that companyName
     const nextCards = cards.filter((card) => card.companyName !== compName && !boardIdsToDelete.includes(card.boardId));
     setCards(nextCards);
+    
+    // Execute deletions in Firestore
+    removeCompany(companyToDelete.id);
+    boardsToDelete.forEach(b => removeBoard(b.id));
+    
+    // For columns and cards, ideally we delete from Firestore too, 
+    // but simplified cascading here by state update is okay if we use deleteDoc for each
+    columns.filter((col) => boardIdsToDelete.includes(col.boardId)).forEach(col => {
+      deleteDoc(doc(db, 'columns', col.id));
+    });
+    
+    cards.filter((card) => card.companyName === compName || boardIdsToDelete.includes(card.boardId)).forEach(card => {
+      deleteDoc(doc(db, 'cards', card.id));
+    });
+
+    logActivity('Excluiu Empresa', `Excluiu a empresa e dependências: ${compName}`);
 
     // If active board was one of the deleted boards, fall back to board-general
     if (boardIdsToDelete.includes(activeBoardId)) {
@@ -518,14 +581,36 @@ export default function App() {
     };
 
     setBoards([...boards, newBoard]);
+    persistBoard(newBoard);
     logActivity('Criou Quadro', `Criou o quadro personalizado: ${name}`);
     
     // Auto populate this new board with default columns so it is ready to use
     const newCols = getInitialColumns(newBoardId);
     setColumns([...columns, ...newCols]);
+    newCols.forEach(col => persistColumn(col));
 
     // Switch to this board immediately
     setActiveBoardId(newBoardId);
+  };
+
+  const handleEditBoard = (boardId: string, newName: string, newCompanyNames: string[], newColor: string) => {
+    const updatedBoards = boards.map(b => {
+      if (b.id === boardId) {
+        const updated = {
+          ...b,
+          name: newName,
+          companyNames: newCompanyNames,
+          companyName: newCompanyNames.length > 0 ? newCompanyNames[0] : 'Todas as Empresas',
+          color: newColor,
+          description: `Quadro gerenciando: ${newCompanyNames.join(', ')}`
+        };
+        persistBoard(updated);
+        return updated;
+      }
+      return b;
+    });
+    setBoards(updatedBoards);
+    logActivity('Editou Quadro', `Alterou informações do quadro: ${newName}`);
   };
 
   // --- WORKSPACE STATS AND FILTERING ---
@@ -535,13 +620,12 @@ export default function App() {
   const getFilteredCards = () => {
     return cards.filter((card) => {
       // 1. Board Scope:
-      // If we are on the general unified board, show all cards that match active filter.
-      // If we are on a specific company board, only show cards belonging to that board's company!
-      if (activeBoard.id !== 'board-general') {
-        const boardCompanies = activeBoard.companyNames || [activeBoard.companyName].filter(Boolean);
-        const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
-        
-        // Se o board não tem empresas listadas, a regra não se aplica
+      // Se o board tiver empresas específicas vinculadas (mesmo sendo o general), filtre!
+      const boardCompanies = activeBoard.companyNames || [];
+      const cardCompanies = card.companyNames || [card.companyName].filter(Boolean);
+      
+      // Se não for general OU se for general MAS tiver empresas específicas vinculadas
+      if (activeBoard.id !== 'board-general' || boardCompanies.length > 0) {
         if (boardCompanies.length > 0) {
           // O cartão deve pertencer a PELO MENOS UMA das empresas do Board
           const matchesBoard = cardCompanies.some(c => boardCompanies.includes(c));
@@ -589,10 +673,19 @@ export default function App() {
     .sort((a, b) => a.order - b.order);
 
   const totalCardsInView = cards.filter((c) => {
-    if (activeBoard.id === 'board-general') return true;
-    const boardCompanies = activeBoard.companyNames || [activeBoard.companyName].filter(Boolean);
+    const boardCompanies = activeBoard.companyNames || [];
+    
+    // Se for board-general E não tiver empresas específicas, exibe tudo
+    if (activeBoard.id === 'board-general' && boardCompanies.length === 0) return true;
+    
     const cardCompanies = c.companyNames || [c.companyName].filter(Boolean);
-    return cardCompanies.some(comp => boardCompanies.includes(comp));
+    
+    // Se o board tem empresas específicas, filtra
+    if (boardCompanies.length > 0) {
+      return cardCompanies.some(comp => boardCompanies.includes(comp));
+    }
+    
+    return true; // Fallback se não for general mas estiver sem empresas
   });
   const doneCount = totalCardsInView.filter((c) => c.completed).length;
   const pendingCount = totalCardsInView.length - doneCount;
@@ -624,6 +717,7 @@ export default function App() {
           onExportData={handleExportData}
           onImportData={handleImportData}
           onAddCustomBoard={handleAddCustomBoard}
+          onEditBoard={handleEditBoard}
           onAddCompany={handleAddCompany}
           onDeleteCompany={handleDeleteCompany}
         />
@@ -662,6 +756,7 @@ export default function App() {
               onExportData={handleExportData}
               onImportData={handleImportData}
               onAddCustomBoard={handleAddCustomBoard}
+              onEditBoard={handleEditBoard}
               onAddCompany={handleAddCompany}
               onDeleteCompany={handleDeleteCompany}
             />
